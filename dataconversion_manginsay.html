@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV to JSON Converter</title>
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --primary: #4f46e5;
+      --primary-dark: #4338ca;
+      --border: #e5e7eb;
+      --code-bg: #0f172a;
+      --code-text: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    header {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: #fff;
+      padding: 40px 20px 70px;
+      text-align: center;
+    }
+    header h1 { margin: 0; font-size: 2rem; letter-spacing: .5px; }
+    header p { margin: 6px 0 0; opacity: .9; font-style: italic; }
+    main {
+      max-width: 860px;
+      margin: -40px auto 40px;
+      padding: 0 16px;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 6px 20px rgba(15, 23, 42, .08);
+    }
+    .card h2 {
+      margin: 0 0 14px;
+      font-size: 1.15rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .step {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .9rem;
+      flex-shrink: 0;
+    }
+    .upload-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+    input[type="file"] {
+      flex: 1;
+      min-width: 220px;
+      padding: 10px;
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      background: #fafbff;
+      font-size: .95rem;
+    }
+    input[type="file"]::file-selector-button {
+      margin-right: 12px;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 8px;
+      background: #e0e7ff;
+      color: var(--primary-dark);
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button {
+      padding: 11px 20px;
+      border: none;
+      border-radius: 10px;
+      background: var(--primary);
+      color: #fff;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, transform .05s;
+    }
+    button:hover { background: var(--primary-dark); }
+    button:active { transform: scale(.98); }
+    button.secondary {
+      background: #eef2ff;
+      color: var(--primary-dark);
+    }
+    button.secondary:hover { background: #e0e7ff; }
+    #error {
+      color: #b91c1c;
+      background: #fee2e2;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin: 14px 0 0;
+      display: none;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    #count { color: var(--muted); font-size: .9rem; }
+    .actions { display: flex; gap: 8px; }
+    .actions button { padding: 8px 14px; font-size: .85rem; }
+    pre {
+      margin: 0;
+      padding: 18px;
+      max-height: 520px;
+      overflow: auto;
+      background: var(--code-bg);
+      color: var(--code-text);
+      border-radius: 10px;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: .88rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    pre.empty { color: #94a3b8; font-style: italic; }
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: .85rem;
+      padding-bottom: 30px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Von Manginsay</h1>
+    <p>IT 3206N [TTh 6:00 PM - 8:30 PM]</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2><span class="step">1</span> Upload CSV</h2>
+      <div class="upload-row">
+        <input type="file" id="csvFile" accept=".csv">
+        <button id="convertBtn">Convert CSV to JSON</button>
+      </div>
+      <div id="error"></div>
+    </section>
+
+    <section class="card">
+      <h2><span class="step">2</span> JSON Display</h2>
+      <div class="toolbar">
+        <span id="count">No data yet</span>
+        <div class="actions">
+          <button class="secondary" id="copyBtn" disabled>Copy</button>
+          <button class="secondary" id="downloadBtn" disabled>Download .json</button>
+        </div>
+      </div>
+      <pre id="output" class="empty">Upload a CSV file and click “Convert CSV to JSON”.</pre>
+    </section>
+  </main>
+
+  <footer>CSV to JSON Data Mapping Exercise</footer>
+
+  <script>
+    const PROGRAMS = {
+      "BSIT": "Bachelor of Science in Information Technology",
+      "BSCS": "Bachelor of Science in Computer Science",
+      "BSIS": "Bachelor of Science in Information Systems",
+      "BSCE": "Bachelor of Science in Computer Engineering"
+    };
+
+    const errBox = document.getElementById("error");
+    const out = document.getElementById("output");
+    const count = document.getElementById("count");
+    const copyBtn = document.getElementById("copyBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+    let currentJson = "";
+
+    function showError(msg) {
+      errBox.textContent = msg;
+      errBox.style.display = msg ? "block" : "none";
+    }
+
+    // Parse CSV text into an array of rows (handles quoted fields)
+    function parseCSV(text) {
+      const rows = [];
+      let row = [], field = "", inQuotes = false;
+      text = text.replace(/^\uFEFF/, "");
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (inQuotes) {
+          if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
+          else if (c === '"') inQuotes = false;
+          else field += c;
+        } else if (c === '"') inQuotes = true;
+        else if (c === ",") { row.push(field); field = ""; }
+        else if (c === "\n" || c === "\r") {
+          if (c === "\r" && text[i + 1] === "\n") i++;
+          row.push(field); field = "";
+          rows.push(row); row = [];
+        } else field += c;
+      }
+      if (field !== "" || row.length) { row.push(field); rows.push(row); }
+      return rows.filter(r => r.some(v => v.trim() !== ""));
+    }
+
+    const capitalize = s =>
+      s.trim().toLowerCase().replace(/(^|\s|-)([a-z])/g, (m, p, ch) => p + ch.toUpperCase());
+
+    function transform(rec) {
+      const course = (rec.course || "").trim();
+      return {
+        studentId: parseInt(rec.student_id, 10),
+        firstName: capitalize(rec.first_name || ""),
+        lastName: capitalize(rec.last_name || ""),
+        program: PROGRAMS[course.toUpperCase()] || course,
+        yearLevel: parseInt(rec.year_level, 10),
+        emailAddress: (rec.email || "").trim().toLowerCase(),
+        outstandingBalance: Number((parseFloat(rec.tuition_balance) || 0).toFixed(2))
+      };
+    }
+
+    function reset() {
+      currentJson = "";
+      out.textContent = "Upload a CSV file and click “Convert CSV to JSON”.";
+      out.className = "empty";
+      count.textContent = "No data yet";
+      copyBtn.disabled = downloadBtn.disabled = true;
+    }
+
+    document.getElementById("convertBtn").addEventListener("click", () => {
+      const file = document.getElementById("csvFile").files[0];
+      showError("");
+      reset();
+
+      if (!file) { showError("Please choose a CSV file first."); return; }
+
+      const reader = new FileReader();
+      reader.onload = e => {
+        const rows = parseCSV(e.target.result);
+        if (rows.length < 2) { showError("CSV has no data rows."); return; }
+        const headers = rows[0].map(h => h.trim());
+        const data = rows.slice(1).map(r => {
+          const rec = {};
+          headers.forEach((h, i) => rec[h] = (r[i] || "").trim());
+          return transform(rec);
+        });
+        currentJson = JSON.stringify(data, null, 4);
+        out.textContent = currentJson;
+        out.className = "";
+        count.textContent = data.length + " record" + (data.length === 1 ? "" : "s") + " converted";
+        copyBtn.disabled = downloadBtn.disabled = false;
+      };
+      reader.onerror = () => showError("Could not read the file.");
+      reader.readAsText(file);
+    });
+
+    copyBtn.addEventListener("click", () => {
+      navigator.clipboard.writeText(currentJson).then(() => {
+        copyBtn.textContent = "Copied!";
+        setTimeout(() => copyBtn.textContent = "Copy", 1200);
+      });
+    });
+
+    downloadBtn.addEventListener("click", () => {
+      const blob = new Blob([currentJson], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "students.json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+  </script>
+</body>
+</html>
